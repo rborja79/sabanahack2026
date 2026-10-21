@@ -13,6 +13,8 @@ Cada uno en su maquina, antes de que empiece:
 Si alguien no logra el paso 1, que no se quede peleando: que trabaje sobre la
 maquina de otro y que se reparta distinto el trabajo.
 
+Si alguien no sabe que hace una pieza, esta en `docs/manual.md`.
+
 ## Reparto que funciona
 
 | Rol | Que hace |

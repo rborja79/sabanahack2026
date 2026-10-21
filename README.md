@@ -27,7 +27,8 @@ Tres robots quedan listos: **Unitree G1** (humanoide, dos brazos), **Unitree Z1*
 (brazo de mesa) y **Unitree Go2** (cuadrupedo). Son los mismos que vende Robotics
 4.0, que es el patrocinador que trae hardware.
 
-> Para el equipo: el paso a paso completo esta en [`docs/equipo.md`](docs/equipo.md).
+> Para el equipo: instalacion paso a paso en [`docs/equipo.md`](docs/equipo.md).
+> Que hace cada cosa y como se usa: [`docs/manual.md`](docs/manual.md).
 
 ## Instalacion
 

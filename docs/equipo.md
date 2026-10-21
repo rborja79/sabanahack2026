@@ -119,8 +119,10 @@ El modelo viene dentro del repo, no hay que descargar nada.
 En este orden, son 15 minutos:
 
 1. `README.md`: que hay y como se conectan las piezas
-2. `docs/viernes.md`: el plan del dia y el reparto de roles
-3. `docs/quest.md`: solo quien vaya a manejar el visor de verdad
+2. `docs/manual.md`: que hace cada archivo, cada comando y cada funcion. Es la
+   referencia que van a tener abierta el viernes
+3. `docs/viernes.md`: el plan del dia y el reparto de roles
+4. `docs/quest.md`: solo quien vaya a manejar el visor de verdad
 
 ## 6. Opcional, si alcanzan
 
