@@ -8,6 +8,24 @@ import { Puente } from './bridge.js'
 import { RobotVista, tresAmj } from './robot.js'
 
 const $ = (id) => document.getElementById(id)
+const parametros = new URLSearchParams(location.search)
+
+// ---------------------------------------------------------------- visor de mentiras
+// Con ?emular el navegador finge ser un Quest 3: sirve para probar todo el
+// camino de VR, incluido el seguimiento de manos, sin tener el visor puesto.
+let devUI = null
+if (parametros.has('emular')) {
+  const { XRDevice, metaQuest3 } = await import('iwer')
+  const aparato = new XRDevice(metaQuest3, { stereoEnabled: false })
+  // forceInstall porque Chrome ya expone navigator.xr aunque no haya visor.
+  aparato.installRuntime({ forceInstall: true })
+  const { DevUI } = await import('@iwer/devui')
+  devUI = new DevUI(aparato)
+  // Con ?emular=manos arranca en seguimiento de manos en vez de mandos.
+  if (parametros.get('emular') === 'manos') aparato.primaryInputMode = 'hand'
+  window.emulador = aparato
+  console.info('emulador de Quest 3 activo · modo', aparato.primaryInputMode)
+}
 
 // ---------------------------------------------------------------- escena
 const escena = new THREE.Scene()
@@ -68,19 +86,43 @@ const marcadores = { left: crearMarcador('left'), right: crearMarcador('right') 
 const fabricaManos = new XRHandModelFactory()
 const manosXR = {}
 const mandosXR = {}
-LADOS.forEach((lado, i) => {
+
+// Ojo: getHand(i) y getController(i) van por indice, y el indice NO siempre
+// corresponde al lado. Hay que leer la lateralidad del evento 'connected'.
+for (let i = 0; i < 2; i++) {
   const mano = render.xr.getHand(i)
-  mano.add(fabricaManos.createHandModel(mano, 'mesh'))
+  // 'spheres' se dibuja en el navegador. El modo 'mesh' baja un modelo de
+  // internet y se cae si la red falla, que es justo lo que pasa en una demo.
+  mano.add(fabricaManos.createHandModel(mano, 'spheres'))
   escena.add(mano)
-  manosXR[lado] = mano
+
   const mando = render.xr.getController(i)
   const linea = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -0.08)]),
-    new THREE.LineBasicMaterial({ color: COLOR[lado] }))
+    new THREE.LineBasicMaterial({ color: 0xffffff }))
   mando.add(linea)
   escena.add(mando)
-  mandosXR[lado] = mando
-})
+
+  const conectar = (ev) => {
+    const lado = ev.data && ev.data.handedness
+    if (lado !== 'left' && lado !== 'right') return
+    if (ev.data.hand) manosXR[lado] = mano
+    mandosXR[lado] = mando
+    linea.material.color.setHex(COLOR[lado])
+    mano.userData.lado = lado
+    mando.userData.lado = lado
+  }
+  const desconectar = () => {
+    for (const lado of LADOS) {
+      if (manosXR[lado] === mano) delete manosXR[lado]
+      if (mandosXR[lado] === mando) delete mandosXR[lado]
+    }
+  }
+  mano.addEventListener('connected', conectar)
+  mano.addEventListener('disconnected', desconectar)
+  mando.addEventListener('connected', conectar)
+  mando.addEventListener('disconnected', desconectar)
+}
 
 /** Devuelve posicion, apertura de pinza y validez de una mano en el marco de la escena. */
 function leerMano (lado) {
@@ -236,8 +278,8 @@ render.xr.addEventListener('sessionstart', () => {
   const ar = modo && modo !== 'opaque'
   decorado.visible = !ar
   Object.values(marcadores).forEach((m) => { m.visible = false })
-  // En AR el robot se coloca un poco al frente para verlo entero.
-  mundo.position.set(0, 0, ar ? -0.9 : 0)
+  // Se corre al frente para no quedar parado dentro del robot.
+  mundo.position.set(0, 0, ar ? -0.9 : -1.3)
 })
 
 render.xr.addEventListener('sessionend', () => {
@@ -267,7 +309,8 @@ function paquete () {
   return datos
 }
 
-render.setAnimationLoop(() => {
+render.setAnimationLoop((t) => {
+  if (devUI) devUI.render(t)
   if (!render.xr.isPresenting) orbita.update()
   if (puente.conectado) puente.enviarManos(paquete(), 30)
   render.render(escena, camara)
@@ -280,4 +323,4 @@ addEventListener('resize', () => {
 })
 
 // Para depurar desde la consola del navegador.
-window.xr = { escena, camara, render, vista, puente, marcadores, estado }
+window.xr = { escena, camara, render, vista, puente, marcadores, estado, devUI, manosXR, mandosXR }

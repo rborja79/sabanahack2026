@@ -1,5 +1,10 @@
 # Entrar en VR o AR desde el Quest
 
+> Si todavia no tienes el visor a la mano, abre la pagina con `?emular` y el
+> navegador finge ser un Quest 3. Todo lo de este documento aplica igual
+> despues, pero puedes avanzar hoy sin el aparato.
+
+
 El navegador del Quest solo deja usar WebXR en **HTTPS** o en **localhost**. La
 forma que menos problemas da es `adb reverse`, porque convierte tu portatil en el
 localhost del visor: no hay certificados, no hay wifi de por medio y no hay

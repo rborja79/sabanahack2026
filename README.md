@@ -1,4 +1,4 @@
-# XR Teleop Kit · Sabana Hack 2026
+# sabanahack2026 · kit de teleoperacion XR
 
 Entorno de trabajo listo para construir una solucion de **teleoperacion y captura
 de demostraciones** con robots, en VR, en AR o con una camara comun. Corre igual
@@ -27,16 +27,24 @@ Tres robots quedan listos: **Unitree G1** (humanoide, dos brazos), **Unitree Z1*
 (brazo de mesa) y **Unitree Go2** (cuadrupedo). Son los mismos que vende Robotics
 4.0, que es el patrocinador que trae hardware.
 
+> Para el equipo: el paso a paso completo esta en [`docs/equipo.md`](docs/equipo.md).
+
 ## Instalacion
 
 ```bash
-git clone <url-del-repo> xrkit
-cd xrkit
+git clone https://github.com/rborja79/sabanahack2026.git
+cd sabanahack2026
 ./setup.sh
 ```
 
 Toma entre 5 y 15 minutos segun la conexion. Al final imprime una prueba del
 robot; si dice `robot ok` quedo bien.
+
+En Windows, desde PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
 
 Requisitos: Python 3.10 o superior, Node 20 o superior, git. En Linux sin
 pantalla, ademas `sudo apt-get install -y libosmesa6`.
@@ -64,12 +72,34 @@ En escritorio arrastras las dos esferas de colores para mover las manos. Teclas:
 
 | Modo | Que necesitas | Para que sirve |
 |---|---|---|
-| Escritorio | nada | probar y depurar |
-| VR o AR | Quest con navegador | la demo que se ve bien |
+| Escritorio | nada | probar y depurar, arrastrando dos esferas |
+| Visor emulado | nada | probar todo el camino de VR sin tener visor |
+| Terminal | nada | probar la cadena completa sin navegador |
 | ArUco | una camara y una hoja impresa | posicion real en 3D, sin descargas |
 | Manos por camara | una camara | lo mas rapido de montar, menos exacto |
+| VR o AR de verdad | Quest con navegador | la demo que se ve bien |
 
-VR y AR: mira `docs/quest.md`.
+**Visor emulado.** Abre la misma pagina con `?emular` y el navegador finge ser
+un Quest 3: aparece ENTER VR, hay mandos y manos virtuales que mueves con el
+raton, y el codigo que corre es exactamente el de VR. Con `?emular=manos`
+arranca en seguimiento de manos en lugar de mandos.
+
+```
+http://localhost:5173/?emular
+http://localhost:5173/?emular=manos
+```
+
+**Terminal.** Sin navegador, sin visor y sin camara:
+
+```bash
+cd bridge && python cliente_prueba.py
+```
+
+Se conecta al puente, dibuja un circulo con la mano derecha, graba el episodio
+y revisa que lo grabado coincida con lo pedido. Es la prueba mas rapida de que
+toda la cadena esta viva.
+
+VR y AR de verdad: mira `docs/quest.md`.
 
 ArUco, el mas preciso sin visor:
 
@@ -105,13 +135,25 @@ df = tabla("20261021-201231-93b0")   # una fila por trama, qpos en columnas
 
 ## Ver objetos
 
+El detector **viene dentro del repo**: `vision/modelos/yolo11n.onnx`, 10 MB,
+corre sobre OpenCV. No hay que descargar nada, no necesita torch y funciona
+igual en Windows, macOS y Linux. Reconoce las 80 clases de COCO, entre ellas
+botella, vaso, tazon, celular, libro, tijeras y persona.
+
 ```bash
+python vision/objetos.py --fuente 0                      # camara en vivo
+python vision/objetos.py --fuente foto.jpg --salida v.png
+python vision/objetos.py --fuente 0 --clases botella,vaso,tazon
 python vision/objetos.py --fuente 0 --modo color --color naranja
-python vision/objetos.py --fuente foto.jpg --modo modelo
 ```
 
 `a_objetivo()` convierte una deteccion en un punto del marco del robot, que es
 lo que necesitas para encadenar "veo la taza" con "muevo la mano a la taza".
+
+Los modelos de MediaPipe (`hand_landmarker.task`, `efficientdet_lite0.tflite`)
+son **opcionales** y solo los usa `vision/manos.py`. `setup.sh` los intenta
+bajar; si la red los bloquea, no pasa nada: ArUco y el modo onnx no dependen
+de ellos.
 
 ## Cambiar de robot
 
@@ -164,6 +206,8 @@ GLB no cargo: revisa que exista `web/public/robots/<modelo>.glb`.
 
 **Desde el Quest no conecta.** El navegador exige HTTPS o localhost. Usa
 `adb reverse`, que esta en `docs/quest.md`.
+
+**No tengo visor y quiero probar VR.** Abre la pagina con `?emular`.
 
 **El brazo no llega.** El objetivo quedo fuera del alcance. Pulsa `c` para
 recalibrar con la mano en una posicion comoda, o baja `--escala` a 0.7.

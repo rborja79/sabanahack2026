@@ -4,10 +4,11 @@
 
 Cada uno en su maquina, antes de que empiece:
 
-1. `./setup.sh` corrido y con `robot ok` en pantalla
-2. puente y visor arrancando sin errores
-3. un episodio grabado y leido con `python datos/cargar.py`
-4. quien lleve el Quest: `adb reverse` probado y entrando a VR
+1. la instalacion corrida y con `robot ok` y `vision ok` en pantalla
+2. `python bridge/cliente_prueba.py` terminando en `prueba OK`
+3. el visor abriendo, conectando y moviendo el robot con el raton
+4. la pagina con `?emular` entrando a VR
+5. quien lleve el Quest: `adb reverse` probado y entrando a VR de verdad
 
 Si alguien no logra el paso 1, que no se quede peleando: que trabaje sobre la
 maquina de otro y que se reparta distinto el trabajo.
@@ -27,10 +28,11 @@ temprano, no escribiendo al final.
 
 ## Que ya esta resuelto y no hay que volver a hacer
 
-- mover un robot con las manos, en VR, AR, camara o raton
+- mover un robot con las manos, en VR, AR, camara, raton o terminal
+- probar VR sin visor, con el emulador que trae la pagina
 - guardar episodios en un formato que se carga con pandas en una linea
 - tres robots listos, cambiar de uno a otro es un argumento
-- ver objetos por color o con un modelo, y pasar la deteccion al marco del robot
+- detectar objetos con YOLO11n sobre OpenCV, sin descargas ni torch
 
 ## Donde esta el valor que si hay que construir
 

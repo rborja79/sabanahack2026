@@ -19,10 +19,12 @@ python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' \
 # ---------------------------------------------------------------- python
 info "entorno de python"
 if [ ! -d .venv ]; then python3 -m venv .venv; fi
-# shellcheck disable=SC1091
-source .venv/bin/activate
-python -m pip install --upgrade pip --quiet
-python -m pip install -r requirements.txt --quiet
+# En Git Bash sobre Windows el entorno queda en Scripts, no en bin.
+if   [ -x .venv/bin/python ];        then PY="$RAIZ/.venv/bin/python"
+elif [ -x .venv/Scripts/python.exe ]; then PY="$RAIZ/.venv/Scripts/python.exe"
+else echo "no se creo el entorno en .venv"; exit 1; fi
+"$PY" -m pip install --upgrade pip --quiet
+"$PY" -m pip install -r requirements.txt --quiet
 echo "    paquetes listos"
 
 # En Linux el render sin pantalla necesita OSMesa.
@@ -44,7 +46,7 @@ for modelo in unitree_g1 unitree_go2 unitree_z1; do
   if [ -f "web/public/robots/$modelo.glb" ]; then
     echo "    $modelo ya estaba"
   else
-    ( cd bridge && python export_robot.py --modelo "$modelo" \
+    ( cd bridge && "$PY" export_robot.py --modelo "$modelo" \
         --salida "../web/public/robots/$modelo.glb" --decimar 6000 )
   fi
 done
@@ -52,10 +54,11 @@ done
 # ---------------------------------------------------------------- modelos de vision
 info "modelos de vision"
 mkdir -p vision/modelos
+echo "    yolo11n.onnx viene en el repo, no hay que bajarlo"
 bajar () {
   [ -f "vision/modelos/$1" ] && { echo "    $1 ya estaba"; return; }
   curl -fsSL -o "vision/modelos/$1" "$2" && echo "    $1 listo" \
-    || aviso "no se pudo bajar $1, el modo camara con manos no va a correr"
+    || aviso "opcional, no se bajo $1. Los modos onnx y aruco funcionan sin el."
 }
 bajar hand_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
@@ -71,25 +74,13 @@ fi
 
 # ---------------------------------------------------------------- prueba
 info "prueba rapida"
-python - <<'PY'
-import sys
-sys.path.insert(0, "bridge")
-from sim import Robot
-import numpy as np
-r = Robot("unitree_g1")
-r.fijar_objetivo("right", r.pos_efector("right") + np.array([0.0, 0.0, 0.12]))
-for _ in range(400):
-    r.paso()
-err = np.linalg.norm(r.pos_efector("right") - r.objetivos["right"])
-p, q = r.estado()
-print(f"    robot ok · bodies {len(r.nombres_body)} · error IK {err*1000:.2f} mm · estado {len(p)}+{len(q)} valores")
-PY
+"$PY" bridge/prueba.py
 
 cat <<'FIN'
 
 Listo. Para arrancar:
 
-  source .venv/bin/activate
+  source .venv/bin/activate          # Git Bash en Windows: source .venv/Scripts/activate
   cd bridge && python server.py --modelo unitree_g1     # terminal 1
   cd web    && npm run dev                              # terminal 2
 
