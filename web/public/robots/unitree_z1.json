@@ -1,0 +1,25 @@
+{
+ "modelo": "unitree_z1",
+ "bodies": [
+  "link00",
+  "link01",
+  "link02",
+  "link03",
+  "link04",
+  "link05",
+  "link06"
+ ],
+ "geoms": 15,
+ "triangulos": 17802,
+ "nq": 6,
+ "nv": 6,
+ "nu": 6,
+ "actuadores": [
+  "motor1",
+  "motor2",
+  "motor3",
+  "motor4",
+  "motor5",
+  "motor6"
+ ]
+}

@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+web/dist/
+sim/mujoco_menagerie/
+vision/modelos/*.task
+vision/modelos/*.tflite
+datos/*/
+.DS_Store

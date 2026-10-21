@@ -1,0 +1,37 @@
+{
+ "modelo": "unitree_go2",
+ "bodies": [
+  "base",
+  "FL_hip",
+  "FL_thigh",
+  "FL_calf",
+  "FR_hip",
+  "FR_thigh",
+  "FR_calf",
+  "RL_hip",
+  "RL_thigh",
+  "RL_calf",
+  "RR_hip",
+  "RR_thigh",
+  "RR_calf"
+ ],
+ "geoms": 56,
+ "triangulos": 85732,
+ "nq": 19,
+ "nv": 18,
+ "nu": 12,
+ "actuadores": [
+  "FL_hip",
+  "FL_thigh",
+  "FL_calf",
+  "FR_hip",
+  "FR_thigh",
+  "FR_calf",
+  "RL_hip",
+  "RL_thigh",
+  "RL_calf",
+  "RR_hip",
+  "RR_thigh",
+  "RR_calf"
+ ]
+}
