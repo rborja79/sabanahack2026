@@ -47,16 +47,34 @@ Info "modelo 3D del X2"
 if ((Test-Path "robots\X2_URDF\scene.xml") -and (Test-Path "robots\X2_URDF\meshes\pelvis.stl")) {
   Write-Host "    ya estaba"
 } else {
-  $tmp = Join-Path $env:TEMP ("x2urdf_" + [guid]::NewGuid().ToString("N"))
-  git clone -q --depth 1 --filter=blob:none --sparse https://github.com/AgibotTech/agibot_x2_urdf.git $tmp
-  if ($LASTEXITCODE -ne 0) { Aviso "no se pudo bajar el modelo del X2: el simulador 3D no funcionara" }
-  else {
-    git -C $tmp sparse-checkout set X2_URDF-v1.4.0 | Out-Null
-    New-Item -ItemType Directory -Force -Path "robots" | Out-Null
-    if (Test-Path "robots\X2_URDF") { Remove-Item -Recurse -Force "robots\X2_URDF" }
-    Copy-Item -Recurse (Join-Path $tmp "X2_URDF-v1.4.0") "robots\X2_URDF"
+  # Se baja solo la carpeta X2_URDF-v1.4.0 (~120 MB). Si el WiFi corta la descarga, se reintenta.
+  $ErrorActionPreference = "Continue"
+  $listo = $false
+  for ($intento = 1; $intento -le 4 -and -not $listo; $intento++) {
+    Write-Host "    descargando (intento $intento de 4)..."
+    $tmp = Join-Path $env:TEMP ("x2urdf_" + [guid]::NewGuid().ToString("N"))
+    git clone -q --depth 1 --filter=blob:none --sparse https://github.com/AgibotTech/agibot_x2_urdf.git $tmp 2>&1 | Out-Host
+    if ($LASTEXITCODE -eq 0) {
+      git -C $tmp sparse-checkout set X2_URDF-v1.4.0 2>&1 | Out-Host
+      $ok = ($LASTEXITCODE -eq 0)
+      for ($r = 1; $r -le 3 -and -not (Test-Path (Join-Path $tmp "X2_URDF-v1.4.0\meshes\pelvis.stl")); $r++) {
+        git -C $tmp checkout -f 2>&1 | Out-Host      # retoma lo que falto si la red se corto
+      }
+      if (Test-Path (Join-Path $tmp "X2_URDF-v1.4.0\meshes\pelvis.stl")) {
+        New-Item -ItemType Directory -Force -Path "robots" | Out-Null
+        if (Test-Path "robots\X2_URDF") { Remove-Item -Recurse -Force "robots\X2_URDF" }
+        Copy-Item -Recurse (Join-Path $tmp "X2_URDF-v1.4.0") "robots\X2_URDF"
+        $listo = $true
+      }
+    }
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
-    Write-Host "    listo en robots\X2_URDF"
+    if (-not $listo) { Start-Sleep -Seconds 3 }
+  }
+  $ErrorActionPreference = "Stop"
+  if ($listo) { Write-Host "    listo en robots\X2_URDF" }
+  else {
+    Aviso "no se pudo bajar el modelo del X2 (la red corto la descarga). Lo demas sigue instalandose."
+    Aviso "Vuelve a correr este script con mejor red, o copia la carpeta robots\X2_URDF desde otro equipo (USB)."
   }
 }
 
