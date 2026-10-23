@@ -11,19 +11,32 @@ function Aviso ($t) { Write-Host "    $t" -ForegroundColor Yellow }
 Info "requisitos"
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "falta git: instalalo desde https://git-scm.com y abre PowerShell de nuevo" }
 $python = $null
-foreach ($cand in @("python", "py", "python3")) {
-  if (-not (Get-Command $cand -ErrorAction SilentlyContinue)) { continue }
-  $v = & $cand -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null
-  if ($LASTEXITCODE -eq 0 -and $v) {
-    $n = $v.Trim().Split(" ")
-    if ([int]$n[0] -eq 3 -and [int]$n[1] -ge 10 -and [int]$n[1] -le 13) { $python = $cand; break }
+if (Test-Path ".venv\Scripts\python.exe") {
+  $python = (Resolve-Path ".venv\Scripts\python.exe").Path      # ya hay un entorno (por ejemplo del setup.ps1): se reutiliza
+} else {
+  # el lanzador 'py' primero (elige una version concreta); luego python / python3
+  $candidatos = @(@("py", "-3.12"), @("py", "-3.11"), @("py", "-3.13"), @("py", "-3.10"), @("python"), @("python3"), @("py"))
+  foreach ($c in $candidatos) {
+    if (-not (Get-Command $c[0] -ErrorAction SilentlyContinue)) { continue }
+    $extra = @($c | Select-Object -Skip 1)
+    $v = & $c[0] @extra -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $v) {
+      $n = "$v".Trim().Split(" ")
+      if ([int]$n[0] -eq 3 -and [int]$n[1] -ge 10) {
+        $exe = & $c[0] @extra -c "import sys; print(sys.executable)"
+        $python = "$exe".Trim(); break
+      }
+    }
   }
 }
-if (-not $python) { throw "hace falta Python 3.10 a 3.13 (https://www.python.org/downloads/, marca 'Add python.exe to PATH')" }
+if (-not $python) {
+  throw "no encontre Python 3.10 o mas nuevo. Prueba en esta ventana:  py --version  y  python --version  (si dice 'Microsoft Store', instala Python desde python.org marcando 'Add python.exe to PATH')"
+}
 Write-Host "    python: $python"
 
 Info "entorno de python (.venv)"
 if (-not (Test-Path ".venv\Scripts\python.exe")) { & $python -m venv .venv }
+if (-not (Test-Path ".venv\Scripts\python.exe")) { throw "no se pudo crear .venv con $python" }
 $py = Join-Path $raiz ".venv\Scripts\python.exe"
 & $py -m pip install --upgrade pip --quiet
 & $py -m pip install -r andamio\requirements.txt --quiet

@@ -2,10 +2,13 @@
 rem Doble clic: menu de pruebas del andamio en Windows (sin WSL).
 cd /d "%~dp0"
 chcp 65001 >nul
-if not exist ".venv\Scripts\python.exe" (
-  echo Instalando por primera vez, tarda unos minutos...
+set LISTO=0
+if exist ".venv\Scripts\python.exe" if exist "robots\X2_URDF\scene.xml" ".venv\Scripts\python.exe" -c "import yaml, anthropic, mujoco, cv2, websockets" 2>/dev/null && set LISTO=1
+if "%LISTO%"=="0" (
+  echo Instalando lo que falta, tarda unos minutos...
   powershell -ExecutionPolicy Bypass -File ".\andamio\instalar\windows_nativo.ps1"
 )
+if not exist ".venv\Scripts\python.exe" ( echo No se pudo instalar: manda una foto del error. & pause & exit /b 1 )
 set PY=.venv\Scripts\python.exe
 echo.
 echo === Andamio - probar en Windows ===
