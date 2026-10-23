@@ -1,0 +1,22 @@
+# Copia a config.yaml para cambiar valores. Todo es opcional; esto muestra los valores por defecto importantes.
+seguridad:
+  vx_max: 0.4          # m/s (el X2 admite hasta 1.0; sube de a poco)
+  vy_max: 0.3
+  wz_max: 0.6          # rad/s
+  bateria_min: 50      # el evento pide mas de 50%
+  bateria_critica: 30  # por debajo se detiene todo
+  emergencia: detener  # detener | amortiguar (amortiguar puede tumbar un humanoide)
+x2:
+  ip_dev: 10.0.1.41    # unidad de desarrollo. NUNCA 10.0.1.40 (control de movimiento)
+  modelo_xml: ""       # MJCF del X2 para limites articulares e IK; vacio = buscar en robots/
+  manos_via: mc        # mc (tren superior, recomendado) | hal (exige: aima em stop-app mc)
+  vel_brazo: 0.8       # rad/s maximos de los brazos
+d1:
+  sdk: ""              # carpeta del SDK del D1 (la que tiene lib/)
+  acrobacias: false    # salto/voltereta: solo con permiso del responsable del robot
+voz:
+  modelo: claude-haiku-4-5   # el doctor prueba que exista: python -m andamio.doctor --probar-claude
+  oido: texto                # texto | panel | whisper
+remoto:
+  host: 10.0.1.41
+  puerto: 8790

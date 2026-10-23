@@ -1,0 +1,57 @@
+nombre: Control por voz
+descripcion: >
+  Escucha frases y las convierte en una de las acciones de la lista (nunca inventa
+  acciones nuevas). Con ANTHROPIC_API_KEY entiende frases libres; sin internet o sin
+  clave usa palabras clave. Di "salir" para terminar. Ejemplos: "camina hacia adelante",
+  "gira a la izquierda", "saluda", "para".
+  Entrada: --oido texto (escribes), --oido panel (boton Hablar del navegador) o
+  --oido whisper (microfono del portatil).
+requiere: [caminar]
+parametros:
+  velocidad: 0.3
+comandos:
+  parar:
+    descripcion: detenerse de inmediato
+    palabras: [para, parate, detente, alto, stop, quieto]
+    respuesta: "Me detengo."
+    pasos:
+      - parar: {}
+  adelante:
+    descripcion: caminar hacia adelante unos segundos
+    palabras: [adelante, avanza, camina, anda, sigue]
+    respuesta: "Voy hacia adelante."
+    pasos:
+      - caminar: {vx: "${velocidad}", duracion: 2}
+  atras:
+    descripcion: caminar hacia atras unos segundos
+    palabras: [atras, retrocede, reversa]
+    respuesta: "Voy hacia atras."
+    pasos:
+      - caminar: {vx: -0.25, duracion: 2}
+  izquierda:
+    descripcion: girar a la izquierda
+    palabras: [izquierda, gira izquierda]
+    respuesta: "Giro a la izquierda."
+    pasos:
+      - girar: {grados: 45, wz: 0.4}
+  derecha:
+    descripcion: girar a la derecha
+    palabras: [derecha, gira derecha]
+    respuesta: "Giro a la derecha."
+    pasos:
+      - girar: {grados: -45, wz: 0.4}
+  saludar:
+    descripcion: saludar con la mano
+    palabras: [saluda, saludo, hola, saludar]
+    respuesta: "Hola, mucho gusto."
+    pasos:
+      - gesto: {nombre: saludar}
+  presentarse:
+    descripcion: decir quien es el robot y para que sirve
+    palabras: [presentate, quien eres, como te llamas]
+    respuesta: "Soy un robot humanoide y hoy estoy participando en Sabana Hack."
+    pasos:
+      - registrar: "presentacion"
+pasos:
+  - preparar: caminar
+  - voz_bucle: {saludo: "Listo, te escucho.", salir: [salir, terminar, adios]}

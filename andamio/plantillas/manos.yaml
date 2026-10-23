@@ -1,0 +1,24 @@
+nombre: Manos y agarre
+descripcion: >
+  Abre y cierra las manos y lleva los brazos a una pose de agarre de ejemplo, muy despacio.
+  LAS POSES SON DE EJEMPLO: ajusta los valores de 'izq' y 'der' (7 angulos en radianes por
+  brazo: hombro pitch, roll, yaw, codo, muneca...) mirando el robot en el simulador antes de
+  usar el real: python -m andamio manos --robot sim
+requiere: [brazos, manos]
+parametros:
+  segundos: 4
+pasos:
+  - confirmar: "Brazos y manos libres de obstaculos y personas. Los brazos se moveran despacio"
+  - preparar: tren_superior
+  - mano: {lado: ambas, abrir: true}
+  - brazos:
+      izq: [0.0, 0.2, 0.0, 0.3, 0.0, 0.0, 0.0]
+      der: [0.0, -0.2, 0.0, 0.3, 0.0, 0.0, 0.0]
+      segundos: "${segundos}"
+    reintentos: 1
+  - mano: {lado: ambas, cerrar: true}
+  - esperar: 1
+  - mano: {lado: ambas, abrir: true}
+  - brazos: {pose: reposo, segundos: "${segundos}"}
+  - decir: "Listo"
+    en_fallo: continuar

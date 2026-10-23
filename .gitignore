@@ -8,3 +8,14 @@ vision/modelos/*.task
 vision/modelos/*.tflite
 datos/*/
 .DS_Store
+
+# andamio / robots: no subir SDK, PDFs ni claves
+.env
+robots/*
+!robots/LEEME.md
+andamio/config.yaml
+alertas*.jsonl
+.idea/
+.venv.nosync/
+.venv
+.pytest_cache/

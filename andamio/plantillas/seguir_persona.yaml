@@ -1,0 +1,19 @@
+nombre: Seguir a una persona
+descripcion: >
+  Autonomia nivel 1. Repite "acercarse" para ir detras de una persona manteniendo 'distancia'.
+  Si la pierde, la vuelve a buscar. Se detiene con PARAR, con "para" por voz o al terminar las vueltas.
+requiere: [caminar]
+parametros:
+  objeto: persona
+  distancia: 1.5
+  vueltas: 20
+pasos:
+  - confirmar: "El robot va a seguir a una persona por su cuenta. Zona despejada y PARAR a mano"
+  - preparar: caminar
+  - repetir:
+      veces: "${vueltas}"
+      pasos:
+        - buscar: {objeto: "${objeto}", max_s: 15}
+        - acercarse: {objeto: "${objeto}", distancia: "${distancia}", max_s: 20}
+          en_fallo: continuar
+        - esperar: 0.5

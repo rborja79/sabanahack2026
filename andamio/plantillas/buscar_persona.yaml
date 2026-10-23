@@ -1,0 +1,25 @@
+nombre: Buscar y acercarse a una persona
+descripcion: >
+  Autonomia nivel 1. Gira en el sitio hasta ver a una persona, la centra, camina hacia ella
+  corrigiendo el rumbo y se detiene a 'distancia' metros; luego saluda. Si la pierde de vista,
+  frena. Necesita un ojo:
+    Mac/webcam:  python -m andamio buscar_persona --robot falso --ojo camara --panel
+    sin camara:  python -m andamio buscar_persona --robot falso --ojo simulado --panel --confirmo
+    X2:          --robot x2 --ojo x2   (o --robot remoto --ojo remoto)
+  Con la webcam la distancia se estima por el tamano de la persona en la imagen: es aproximada.
+requiere: [caminar]
+parametros:
+  objeto: persona
+  distancia: 1.2
+  velocidad: 0.3
+pasos:
+  - confirmar: "Zona despejada: el robot va a girar y caminar SOLO hacia una persona. Ten el PARAR a mano"
+  - preparar: caminar
+  - decir: "Voy a buscar a alguien"
+    en_fallo: continuar
+  - buscar: {objeto: "${objeto}", max_s: 25}
+  - acercarse: {objeto: "${objeto}", distancia: "${distancia}", vx: "${velocidad}", max_s: 40}
+  - decir: "Hola, te encontre"
+    en_fallo: continuar
+  - gesto: {nombre: saludar}
+    en_fallo: continuar

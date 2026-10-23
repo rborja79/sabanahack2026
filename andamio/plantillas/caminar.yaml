@@ -1,0 +1,21 @@
+nombre: Caminar, girar y volver
+descripcion: >
+  Camina un tramo corto, gira media vuelta y vuelve. Sirve para comprobar modos, velocidad y
+  parada. Cambia los parametros desde la linea de comandos:
+  python -m andamio caminar --param velocidad=0.25 --param duracion=2
+requiere: [caminar]
+parametros:
+  velocidad: 0.3      # m/s; el X2 exige al menos 0.2
+  duracion: 3         # segundos por tramo
+  giro: 180           # grados
+pasos:
+  - registrar: "Antes de empezar: bateria sobre 50%, espacio libre de 3 m, una persona con el boton de emergencia"
+  - preparar: caminar
+  - caminar: {vx: "${velocidad}", duracion: "${duracion}"}
+    reintentos: 1
+  - parar: {}
+  - girar: {grados: "${giro}", wz: 0.4}
+  - caminar: {vx: "${velocidad}", duracion: "${duracion}"}
+  - parar: {}
+  - decir: "Llegue"
+    en_fallo: continuar

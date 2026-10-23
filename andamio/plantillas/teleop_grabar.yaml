@@ -1,0 +1,13 @@
+nombre: Teleoperar y grabar
+descripcion: >
+  Abre el puente para el visor de las gafas: tus manos mueven los brazos del robot y se
+  graba el episodio en datos/. En el visor pulsa "calibrar" con las manos en posicion
+  comoda; "grabar" y "parar" desde el visor. duracion 0 = hasta Ctrl+C o parada.
+requiere: [brazos, manos]
+parametros:
+  tarea: demo
+  duracion: 0
+pasos:
+  - preparar: tren_superior
+  - confirmar: "Zona de los brazos libre. Quien lleva las gafas ve el robot y la mano en el boton de parada"
+  - teleop: {grabar: false, tarea: "${tarea}", duracion: "${duracion}"}

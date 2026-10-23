@@ -1,0 +1,9 @@
+nombre: Saludar
+descripcion: Se pone de pie, saluda y habla. Es la prueba mas corta para ver que todo conecta.
+requiere: [gestos]
+pasos:
+  - preparar: estable
+  - gesto: {nombre: saludar}
+    reintentos: 1
+  - decir: "Hola, bienvenidos a Sabana Hack"
+    en_fallo: continuar

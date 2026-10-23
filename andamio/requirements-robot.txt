@@ -1,0 +1,2 @@
+# Lo unico que necesita el servidor que corre junto al robot (la logica del servidor es solo libreria estandar).
+pyyaml>=6.0
