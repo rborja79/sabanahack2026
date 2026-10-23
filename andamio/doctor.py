@@ -72,7 +72,7 @@ def revisar(robot="general", probar_claude=False, cfg=None):
                 "se necesita Python 3.9 o mas")
     _modulo(inf, "pyyaml", "yaml", pista="pip install pyyaml")
     _modulo(inf, "numpy")
-    mj = _modulo(inf, "mujoco", requerido=robot in ("sim", "x2", "remoto"), pista="pip install mujoco")
+    mj = _modulo(inf, "mujoco", requerido=robot in ("sim", "x2", "x2sim", "remoto"), pista="pip install mujoco")
     _modulo(inf, "websockets", requerido=False, pista="pip install websockets (necesario para el visor de las gafas)")
     ant = _modulo(inf, "anthropic", requerido=False, pista="pip install anthropic (sin el, la voz usa solo palabras clave)")
 
@@ -126,12 +126,29 @@ def revisar(robot="general", probar_claude=False, cfg=None):
     except OSError as e:
         inf.agregar(FALLO, "carpeta datos/", str(e), "las grabaciones no se podran guardar")
 
-    if robot == "x2":
+    if robot == "x2sim":
+        inf.agregar(OK if platform.machine() in ("x86_64", "AMD64") else FALLO, "procesador x86_64",
+                    platform.machine(), "el simulador oficial de AgiBot solo corre en x86_64 (no en Mac Apple Silicon)")
+        pantalla = os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+        inf.agregar(OK if pantalla else AVISO, "pantalla para la ventana de MuJoCo", pantalla or "sin DISPLAY",
+                    "en WSL2 hace falta Windows 11 (WSLg); comprueba con: echo $DISPLAY")
+        carpeta = pathlib.Path(os.environ.get("X2_SIM", str(pathlib.Path.home() / "x2_simulation")))
+        faltan = [d for d in ("aimdk", "sim_mujoco", "mc") if not (carpeta / d).is_dir()]
+        inf.agregar(OK if not faltan else FALLO, f"simulador oficial en {carpeta}", "completo" if not faltan else f"faltan {faltan}",
+                    "corre ./andamio/instalar/sim_oficial.sh preparar CARPETA_CON_LO_DESCARGADO")
+        inf.agregar(OK if pathlib.Path("/agibot/data/var").is_dir() else FALLO, "/agibot/data/var", "",
+                    "sudo mkdir -p /agibot/data/var && sudo chown $USER -R /agibot")
+        en_marcha = subprocess.run(["tmux", "has-session", "-t", "x2sim"], capture_output=True).returncode == 0 \
+            if shutil.which("tmux") else False
+        inf.agregar(OK if en_marcha else AVISO, "simulador y control de movimiento", "corriendo" if en_marcha else "apagados",
+                    "./andamio/instalar/sim_oficial.sh iniciar")
+    if robot in ("x2", "x2sim"):
         x = cfg["x2"]
-        r = _ping(x["ip_dev"])
-        inf.agregar(OK if r else (AVISO if r is None else FALLO), f"red: unidad de desarrollo {x['ip_dev']}",
-                    "responde" if r else "no responde",
-                    "cable Gigabit al robot, tu IP 10.0.1.2/24 (en WSL2 usa red espejo); el Wi-Fi solo para depurar")
+        if robot == "x2":
+            r = _ping(x["ip_dev"])
+            inf.agregar(OK if r else (AVISO if r is None else FALLO), f"red: unidad de desarrollo {x['ip_dev']}",
+                        "responde" if r else "no responde",
+                        "cable Gigabit al robot, tu IP 10.0.1.2/24 (en WSL2 usa red espejo); el Wi-Fi solo para depurar")
         inf.agregar(OK if shutil.which("ros2") else AVISO, "ROS 2 (ros2)", "", "source /opt/ros/humble/setup.bash")
         inf.agregar(OK if os.environ.get("RMW_IMPLEMENTATION") == "rmw_fastrtps_cpp" else AVISO, "RMW_IMPLEMENTATION",
                     os.environ.get("RMW_IMPLEMENTATION", "(sin definir)"), "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp")
@@ -143,7 +160,7 @@ def revisar(robot="general", probar_claude=False, cfg=None):
             inf.agregar(FALLO, "SDK AimDK (aimdk_msgs)", f"falta {e.name}",
                         "compila el SDK en esta maquina o en el contenedor (colcon build) y haz source install/local_setup.bash; "
                         "o usa --robot remoto contra un servidor corriendo junto al robot")
-        if _ping(x["ip_mc"]):
+        if robot == "x2" and _ping(x["ip_mc"]):
             inf.agregar(AVISO, f"PC1 {x['ip_mc']}", "alcanzable", "no se desarrolla ni se ejecuta nada en PC1")
     if robot == "d1":
         d1 = cfg["d1"]
@@ -181,7 +198,7 @@ def imprimir(inf):
 
 def principal(argv=None):
     ap = argparse.ArgumentParser(prog="python -m andamio.doctor")
-    ap.add_argument("--robot", default="general", choices=["general", "sim", "x2", "d1", "remoto"])
+    ap.add_argument("--robot", default="general", choices=["general", "sim", "x2", "x2sim", "d1", "remoto"])
     ap.add_argument("--probar-claude", action="store_true")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)

@@ -355,3 +355,24 @@ def test_transporte_ros_sin_sdk_da_pista(monkeypatch, cfg, alertas):
     with pytest.raises(ErrorConexion) as e:
         t.iniciar()
     assert "source" in e.value.pista
+
+
+def test_x2sim_sin_bateria_ni_pc3(cfg, alertas):
+    from andamio.robots.x2_ros2 import RobotX2Sim
+    from andamio.fabrica import ROBOTS
+    assert "x2sim" in ROBOTS
+    cfg["x2"]["espera_modo_s"] = 1.0
+    t = TransporteFalso()
+    t.bat = None                       # el simulador no publica bateria
+    r = RobotX2Sim(cfg, alertas, transporte=t)
+    r.conectar()
+    try:
+        assert r.estado()["bateria"] == 100.0
+        r.hablar("hola")               # sin servicio de voz: se anuncia, no falla
+        r.video("intro.mp4")
+        r.luces(1, (0, 0, 255))
+        r.expresion(90)
+        assert not any(isinstance(c, tuple) and c[0] == "tts" for c in t.llamadas)
+        assert any("diria: hola" in a["mensaje"] for a in alertas.recientes(20))
+    finally:
+        r.cerrar()

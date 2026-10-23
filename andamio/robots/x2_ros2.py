@@ -672,3 +672,41 @@ class RobotX2(Robot):
         r_, g, b = color
         self._medio(self.t.luces(modo, r_, g, b), "cambiar las luces",
                     "0x1024 = prioridad insuficiente: task_manager esta usando las luces")
+
+
+class RobotX2Sim(RobotX2):
+    """El X2 del simulador oficial de AgiBot (sim_mujoco + mc en un PC x86 con Ubuntu 22.04 / WSL2).
+
+    Habla exactamente el mismo ROS 2 que el robot real (mismo control de movimiento 'mc'), asi que
+    la marcha, el equilibrio y los cambios de modo son los de verdad. Lo que el simulador no trae
+    (bateria, computador de interaccion con voz/pantalla/luces) se reemplaza por avisos.
+    """
+    nombre = "x2sim"
+
+    def estado(self):
+        est = super().estado()
+        if est.get("bateria") is None:
+            est["bateria"] = 100.0           # el simulador no publica la bateria
+        return est
+
+    def _anunciar(self, texto):
+        if self.alertas:
+            self.alertas.info(f"[x2sim] {texto}")
+
+    def hablar(self, texto):
+        cli = self.t.cl.get("tts") if hasattr(self.t, "cl") else None
+        if cli is not None and cli.service_is_ready():
+            return super().hablar(texto)
+        self._anunciar(f"diria: {texto}")
+
+    def video(self, ruta, repetir=False):
+        self._anunciar(f"pantalla: video {ruta}" + (" (en bucle)" if repetir else ""))
+
+    def audio(self, ruta):
+        self._anunciar(f"parlante: audio {ruta}")
+
+    def expresion(self, emocion, repetir=False):
+        self._anunciar(f"cara: expresion {emocion}")
+
+    def luces(self, modo, color):
+        self._anunciar(f"luces: modo {modo} color {tuple(color)}")

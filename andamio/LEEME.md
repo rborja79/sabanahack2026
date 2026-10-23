@@ -50,6 +50,7 @@ y se usan con los pasos `mano` y `brazos` (plantilla `manos.yaml`).
 | `falso` | robot de mentira en memoria, para probar lógica y fallos | todo (lo anota) |
 | `sim` | X2 en MuJoCo con su modelo real; `--ver3d` abre una ventana 3D | caminar (deslizando), brazos, cabeza |
 | `x2` | X2 real por ROS 2 (Ubuntu + AimDK, cable a 10.0.1.41) | caminar, brazos, cabeza, manos, gestos, voz, medios |
+| `x2sim` | X2 en el simulador oficial de AgiBot (física + control real), Ubuntu/WSL2 x86 | caminar, brazos, cabeza, manos, gestos (voz/pantalla se anuncian) |
 | `d1` | cuadrúpedo D1 (SDK zsl-1, solo Linux) | caminar, gestos |
 | `remoto` | cualquiera de los anteriores corriendo en otra máquina con `servidor_robot` | lo que tenga el de allá |
 
@@ -65,6 +66,27 @@ python -m andamio buscar_persona --robot sim --ojo simulado --ver3d --panel --co
 En el Mac la ventana 3D exige `mjpython` (viene con mujoco). La simulación es cinemática: el robot se desliza al caminar
 (no simula pasos ni equilibrio, eso lo hace el robot real) y mueve brazos y cabeza con los límites del modelo. Sirve para
 ver que la plantilla hace lo que crees, no para validar estabilidad.
+
+### Simulador oficial de AgiBot con física (WSL2 / Ubuntu x86)
+
+En un portátil x86 con Ubuntu 22.04 o WSL2 (Windows 11) corre el simulador oficial "X2 Sim + MC Deployment":
+MuJoCo con física y el **mismo control de movimiento (mc) del robot real**, así que el X2 camina, se equilibra y se
+levanta de verdad. El andamio lo maneja con `--robot x2sim`, por el mismo ROS 2 que usará con el robot (lo que el
+simulador no trae —batería, voz, pantalla, luces— se anuncia en las alertas). No corre en Mac Apple Silicon.
+
+```
+# una vez: baja del sitio del SDK (barra flotante > Extras) sim_mujoco-x86 y mc-x86, y el SDK AimDK; ponlos en una carpeta
+./andamio/instalar/sim_oficial.sh preparar ~/Descargas/x2_sim
+./andamio/instalar/sim_oficial.sh iniciar                 # ventana de MuJoCo + mc en una sesion tmux
+./andamio/instalar/sim_oficial.sh correr caminar --panel  # cualquier plantilla contra el simulador
+./andamio/instalar/probar_wsl.sh                          # menu de pruebas
+./andamio/instalar/sim_oficial.sh parar
+```
+
+La cámara del portátil no se ve dentro de WSL2: en Windows, `Probar en Windows.bat` opción 8 (o
+`python -m andamio.camara_red`) la comparte como video y en WSL2 se usa con
+`ANDAMIO_VISION__CAMARA=http://127.0.0.1:8781/video ... --ojo camara`. Nota de la guía oficial: con este control, girar
+solo con velocidad angular no garantiza el giro en el sitio; si no gira, agrega un poco de avance (`vx: 0.2`).
 
 ## Pantalla, sonido y luces (X2)
 

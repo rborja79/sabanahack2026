@@ -20,7 +20,8 @@ echo   4) Autonomia con TU CAMARA (alejate 2-3 m y camina hacia el portatil)
 echo   5) Pantalla, sonido y luces del X2 (solo anuncia lo que haria)
 echo   6) Solo el panel con la camara
 echo   7) Modo remoto: este equipo hace de robot (servidor) para que otro lo maneje
-choice /c 1234567 /t 20 /d 1 /m "Elige (si no eliges en 20 s arranca la 1)"
+echo   8) Compartir la camara con WSL2 (deja esta ventana abierta)
+choice /c 12345678 /t 20 /d 1 /m "Elige (si no eliges en 20 s arranca la 1)"
 set OP=%errorlevel%
 if %OP%==1 %PY% -m andamio buscar_persona --robot sim --ojo simulado --ver3d --panel --confirmo
 if %OP%==2 %PY% -m andamio voz --robot sim --ver3d --panel --oido panel --confirmo
@@ -29,5 +30,6 @@ if %OP%==4 %PY% -m andamio buscar_persona --robot falso --ojo camara --panel
 if %OP%==5 %PY% -m andamio medios --robot falso --panel
 if %OP%==6 %PY% -m andamio --robot falso --ojo camara --panel
 if %OP%==7 %PY% -m andamio.servidor_robot --robot sim
+if %OP%==8 %PY% -m andamio.camara_red
 echo.
 pause

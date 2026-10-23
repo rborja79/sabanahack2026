@@ -265,7 +265,7 @@ def principal(argv=None):
     from .nucleo.alertas import Alertas
     _leer_env()
     ap = argparse.ArgumentParser(description="Servidor del robot para controlarlo desde otro computador")
-    ap.add_argument("--robot", default="x2", choices=["x2", "d1", "falso", "sim"])
+    ap.add_argument("--robot", default="x2", choices=["x2", "x2sim", "d1", "falso", "sim"])
     ap.add_argument("--puerto", type=int)
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--token", default=os.environ.get("ANDAMIO_TOKEN", ""))

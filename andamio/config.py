@@ -64,7 +64,7 @@ DEFECTO = {
     "sim": {"modelo": ""},
     "vision": {
         "ojo": "ninguno",        # ninguno | camara | simulado | x2 | remoto (o --ojo en la linea de comandos)
-        "camara": 0,             # indice de la webcam (0 = la del portatil)
+        "camara": "0",           # indice de la webcam (0 = la del portatil) o una URL (http://IP:8781/video)
         "fov_h": 70.0,           # campo de vision horizontal en grados (webcam ~70; ajusta para el X2)
         "hz": 8.0,               # detecciones por segundo como maximo
         "confianza": 0.45,       # minimo para aceptar una deteccion
