@@ -7,6 +7,7 @@ y se puede pedir la pose de cada pieza para pintarla en el visor. No simula fisi
 import math
 import pathlib
 import threading
+import time
 
 import numpy as np
 
@@ -16,7 +17,7 @@ from .falso import RobotFalso
 
 RAIZ_REPO = pathlib.Path(__file__).resolve().parents[2]
 BUSCAR = [
-    "robots/X2_URDF/X2-Ultra.xml", "robots/X2_URDF/scene.xml",
+    "robots/X2_URDF/scene.xml", "robots/X2_URDF/X2-Ultra.xml",
     "robots/Agibot X2-X2ultra/X2_URDF-v1.4.0/X2-Ultra.xml",
     "sim/mujoco_menagerie/unitree_g1/g1.xml",
 ]
@@ -77,7 +78,80 @@ class RobotSim(RobotFalso):
         self.modelo = Modelo(self.ruta_modelo, efectores)
         self._mlock = threading.RLock()
         self.apertura = {"izquierda": 1.0, "derecha": 1.0}
+        self.marcadores = []              # [{"clase", "x", "y"}] que se dibujan en el visor 3D (ojo simulado)
+        self._visor = None
         self._sincronizar_base()
+
+    # ---------- visor 3D (ventana de MuJoCo) ----------
+    def abrir_visor_3d(self):
+        """Abre una ventana 3D que sigue al robot. En el Mac hay que lanzar con mjpython:
+            .venv/bin/mjpython -m andamio PLANTILLA --robot sim --ver3d"""
+        try:
+            import mujoco
+            import mujoco.viewer
+            self._visor = mujoco.viewer.launch_passive(self.modelo.m, self.modelo.d,
+                                                       show_left_ui=False, show_right_ui=False)
+        except Exception as e:
+            pista = ("en el Mac lanza con:  .venv/bin/mjpython -m andamio ... --robot sim --ver3d"
+                     if "mjpython" in str(e) else "el visor 3D necesita pantalla (no funciona por SSH sin X)")
+            raise ErrorRobot(f"no se pudo abrir el visor 3D: {e}", pista=pista)
+        try:
+            v = self._visor
+            v.cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+            az, dist = 210.0, 5.0
+            if self.marcadores:                      # de lado, para ver robot y objetivo a la vez
+                dx = float(self.marcadores[0]["x"]) - self.pose[0]
+                dy = float(self.marcadores[0]["y"]) - self.pose[1]
+                az = math.degrees(math.atan2(dy, dx)) - 90
+                dist = max(5.0, 1.6 * math.hypot(dx, dy))
+            v.cam.distance, v.cam.elevation, v.cam.azimuth = dist, -22, az
+        except Exception:
+            pass
+        self._seguir_camara = True
+        threading.Thread(target=self._bucle_visor, daemon=True, name="andamio-visor3d").start()
+        if self.alertas:
+            self.alertas.info("visor 3D abierto (cierra la ventana o pulsa Ctrl+C para salir)")
+
+    def visor_abierto(self):
+        return self._visor is not None and self._visor.is_running()
+
+    def _bucle_visor(self):
+        import mujoco
+        while self.visor_abierto():
+            t0 = time.monotonic()
+            try:
+                self._avanzar()
+                with self._mlock:
+                    self._sincronizar_base()
+                    x, y = self.pose[0], self.pose[1]
+                    marcas = list(self.marcadores)
+                with self._visor.lock():
+                    scn = self._visor.user_scn
+                    scn.ngeom = 0
+                    for mk in marcas[: max(0, scn.maxgeom - 1)]:
+                        mujoco.mjv_initGeom(scn.geoms[scn.ngeom], mujoco.mjtGeom.mjGEOM_CAPSULE,
+                                            np.array([0.18, 0.65, 0.0]),
+                                            np.array([float(mk["x"]), float(mk["y"]), 0.85]),
+                                            np.eye(3).flatten(), np.array([0.25, 0.8, 0.5, 0.85], dtype=np.float32))
+                        scn.ngeom += 1
+                    if getattr(self, "_seguir_camara", False):
+                        if marcas:
+                            x, y = (x + float(marcas[0]["x"])) / 2, (y + float(marcas[0]["y"])) / 2
+                        self._visor.cam.lookat[:] = (x, y, 0.6)
+                # sync() FUERA de los candados: en el Mac (mjpython) espera al hilo grafico y,
+                # si se llama con el candado tomado, se bloquea todo
+                self._visor.sync()
+            except Exception:
+                pass
+            time.sleep(max(0.0, 1 / 30 - (time.monotonic() - t0)))
+
+    def cerrar(self):
+        if self._visor is not None:
+            try:
+                self._visor.close()
+            except Exception:
+                pass
+        super().cerrar()
 
     # ---------- base ----------
     def _sincronizar_base(self):

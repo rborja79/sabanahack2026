@@ -84,11 +84,20 @@ ESPEC = {
     "grabar": {"tarea", "pasos"},
     "registrar": None,
     "confirmar": None,
+    "video": {"archivo", "repetir"},
+    "audio": {"archivo"},
+    "expresion": {"nombre", "repetir"},
+    "luces": {"modo", "color"},
     "mirar": {"objeto", "confianza", "guardar_en"},
     "buscar": {"objeto", "confianza", "max_s", "wz", "sentido"},
     "acercarse": {"objeto", "confianza", "distancia", "vx", "max_s", "perdido_s"},
 }
 POSES = {"reposo": ([0.0] * 7, [0.0] * 7)}
+EXPRESIONES = {"parpadear": 1, "aburrido": 60, "anormal": 70, "dormido": 80, "feliz": 90,
+               "muy_enojado": 190, "adorar": 200}
+MODOS_LUZ = {"fijo": 0, "respirar": 1, "parpadear": 2, "fluir": 3}
+COLORES = {"rojo": (255, 0, 0), "verde": (0, 255, 0), "azul": (0, 0, 255), "blanco": (255, 255, 255),
+           "amarillo": (255, 200, 0), "morado": (160, 0, 255), "naranja": (255, 120, 0), "apagado": (0, 0, 0)}
 
 
 def _sustituir(valor, ctx, extra=None):
@@ -608,6 +617,52 @@ class Ejecutor:
                 meta = ctx.grabador.parar()
                 if meta:
                     ctx.alertas.info(f"episodio guardado: {meta.get('episodio')} ({meta.get('tramas')} tramas)")
+
+    # ---------- medios ----------
+    def _ruta_medio(self, archivo):
+        archivo = str(archivo or "").strip()
+        if not archivo:
+            raise ErrorPlantilla("falta 'archivo'")
+        if ".." in archivo.split("/"):
+            raise ErrorPlantilla("'archivo' no puede subir de carpeta con ..")
+        if archivo.startswith("/"):
+            return archivo
+        base = self.ctx.cfg.get("x2", {}).get("carpeta_medios", "/var/tmp/andamio_medios")
+        return base.rstrip("/") + "/" + archivo
+
+    def _paso_video(self, a, extra):
+        a = a if isinstance(a, dict) else {"archivo": a}
+        self.ctx.robot.video(self._ruta_medio(a.get("archivo")), bool(a.get("repetir", False)))
+
+    def _paso_audio(self, a, extra):
+        a = a if isinstance(a, dict) else {"archivo": a}
+        self.ctx.robot.audio(self._ruta_medio(a.get("archivo")))
+
+    def _paso_expresion(self, a, extra):
+        a = a if isinstance(a, dict) else {"nombre": a}
+        n = a.get("nombre")
+        if isinstance(n, str) and n in EXPRESIONES:
+            n = EXPRESIONES[n]
+        elif isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= 1000:
+            pass
+        else:
+            raise ErrorPlantilla(f"expresion desconocida: {n!r}", pista=f"usa {sorted(EXPRESIONES)} o un id numerico del manual")
+        self.ctx.robot.expresion(n, bool(a.get("repetir", False)))
+
+    def _paso_luces(self, a, extra):
+        a = a or {}
+        modo = a.get("modo", "fijo")
+        if modo not in MODOS_LUZ:
+            raise ErrorPlantilla(f"modo de luces desconocido: {modo!r}", pista=f"usa {sorted(MODOS_LUZ)}")
+        color = a.get("color", "blanco")
+        if isinstance(color, str):
+            if color not in COLORES:
+                raise ErrorPlantilla(f"color desconocido: {color!r}", pista=f"usa {sorted(COLORES)} o [r, g, b]")
+            color = COLORES[color]
+        if (not isinstance(color, (list, tuple)) or len(color) != 3
+                or not all(isinstance(c, int) and not isinstance(c, bool) and 0 <= c <= 255 for c in color)):
+            raise ErrorPlantilla("'color' debe ser un nombre o [r, g, b] con enteros de 0 a 255")
+        self.ctx.robot.luces(MODOS_LUZ[modo], tuple(color))
 
     def _paso_mirar(self, a, extra):
         from ..autonomia import mirar

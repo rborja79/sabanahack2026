@@ -35,6 +35,8 @@ def principal(argv=None):
     ap.add_argument("--modelo", default="", help="MJCF para sim, IK y limites")
     ap.add_argument("--config")
     ap.add_argument("--log", help="archivo JSONL de alertas")
+    ap.add_argument("--ver3d", action="store_true",
+                    help="ventana 3D del robot simulado (con --robot sim; en el Mac usa .venv/bin/mjpython)")
     ap.add_argument("--ojo", choices=["ninguno", "camara", "simulado", "x2", "remoto"],
                     help="vision: camara (webcam), simulado, x2 (camara del robot) o remoto")
     args = ap.parse_args(argv)
@@ -60,6 +62,15 @@ def principal(argv=None):
                 print("-", p)
             print("plantilla correcta" if not problemas else f"{len(problemas)} problema(s)")
             return 0 if not problemas else 1
+        visor = False
+        if args.ver3d:
+            if not hasattr(app.robot, "abrir_visor_3d"):
+                raise ErrorAndamio("--ver3d solo funciona con --robot sim",
+                                   pista="usa: .venv/bin/mjpython -m andamio PLANTILLA --robot sim --ver3d")
+            if app.ojo is not None and hasattr(app.ojo, "objetivos"):
+                app.robot.marcadores = app.ojo.objetivos
+            app.robot.abrir_visor_3d()
+            visor = True
         panel = None
         if args.panel:
             from .panel import Panel
@@ -69,11 +80,13 @@ def principal(argv=None):
                 app.iniciar()        # para ver la camara en el panel desde ya
         if args.plantilla:
             resultado = app.ejecutar(args.plantilla, _params(args.param))
-            if panel is None:
+            if panel is None and not visor:
                 return 0 if resultado["ok"] else 1
         try:
             import time
-            while panel is not None:
+            while panel is not None or (visor and app.robot.visor_abierto()):
+                if visor and panel is None and not app.robot.visor_abierto():
+                    break
                 time.sleep(0.5)
         except KeyboardInterrupt:
             pass

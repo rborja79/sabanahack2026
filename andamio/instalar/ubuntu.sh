@@ -81,6 +81,9 @@ else
   aviso "  ./andamio/instalar/ubuntu.sh --sdk ~/aimdk"
 fi
 
+info "modelo 3D del X2"
+./andamio/instalar/bajar_modelo_x2.sh || aviso "no se pudo bajar el modelo del X2 (sin internet?): el simulador 3D no funcionara"
+
 info "pruebas y diagnostico"
 "$PY" -m pytest andamio/tests -q -x 2>&1 | tail -3 || true
 "$PY" -m andamio.doctor --robot x2 || true

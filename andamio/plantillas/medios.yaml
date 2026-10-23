@@ -1,0 +1,19 @@
+nombre: Pantalla, sonido y luces
+descripcion: >
+  Expresiones en la cara del X2, luces, voz (TTS), un video y un audio propios.
+  Los videos (.mp4) y audios (.wav) se suben antes al computador de interaccion del robot con
+  andamio/instalar/subir_medios.sh; 'archivo' es el nombre dentro de x2.carpeta_medios.
+  Con --robot falso o sim solo se anuncia en las alertas lo que haria.
+requiere: [medios]
+pasos:
+  - expresion: feliz
+  - luces: {modo: respirar, color: azul}
+  - decir: "Hola, soy el X2 del equipo"
+    en_fallo: continuar
+  - video: {archivo: presentacion.mp4}
+    en_fallo: continuar
+  - audio: {archivo: saludo.wav}
+    en_fallo: continuar
+  - esperar: 3
+  - expresion: parpadear
+  - luces: {modo: fijo, color: blanco}

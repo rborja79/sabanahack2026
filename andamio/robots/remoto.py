@@ -182,6 +182,18 @@ class RobotRemoto(Robot):
     def hablar(self, texto):
         self._rpc("hablar", texto)
 
+    def video(self, ruta, repetir=False):
+        self._rpc("video", ruta, bool(repetir))
+
+    def audio(self, ruta):
+        self._rpc("audio", ruta)
+
+    def expresion(self, emocion, repetir=False):
+        self._rpc("expresion", emocion, bool(repetir))
+
+    def luces(self, modo, color):
+        self._rpc("luces", modo, list(color))
+
     # ---------- vision (la camara y el detector viven en el robot) ----------
     def ver_remoto(self):
         return self._rpc("ver") or []

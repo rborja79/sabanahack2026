@@ -25,6 +25,9 @@ if [ "${1:-}" = "--voz" ]; then
   "$PY" -m pip install -r andamio/requirements-voz.txt --quiet && echo "    voz local lista"
 fi
 
+info "modelo 3D del X2"
+./andamio/instalar/bajar_modelo_x2.sh || aviso "no se pudo bajar el modelo del X2 (sin internet?): el simulador 3D no funcionara"
+
 info "archivos de configuracion"
 [ -f .env ] || { cp andamio/.env.ejemplo .env; aviso "se creo .env: pon tu ANTHROPIC_API_KEY y un ANDAMIO_TOKEN"; }
 if ! grep -q '^\.env$' .gitignore 2>/dev/null; then printf '\n.env\n' >> .gitignore; fi

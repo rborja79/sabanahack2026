@@ -46,6 +46,7 @@ DEFECTO = {
         "cabeza_yaw_max": 1.0,       # rad, si el modelo no da limites
         "cabeza_pitch_max": 0.5,
         "mano_cierre_factor": 0.8,   # fraccion del "doble de la mitad" que se usa como mano cerrada
+        "carpeta_medios": "/var/tmp/andamio_medios",   # en el PC3 (10.0.1.42): videos y audios para la pantalla y el parlante
     },
     "d1": {
         "ip_robot": "192.168.234.1",
@@ -67,7 +68,8 @@ DEFECTO = {
         "fov_h": 70.0,           # campo de vision horizontal en grados (webcam ~70; ajusta para el X2)
         "hz": 8.0,               # detecciones por segundo como maximo
         "confianza": 0.45,       # minimo para aceptar una deteccion
-        "modelo": "",            # vacio = vision/modelos/yolo11n.onnx del repo
+        "modelo": "",            # vacio = vision/modelos/yolo11n.onnx del repo (o tu modelo entrenado .onnx)
+        "clases": [],            # nombres de las clases de TU modelo, en orden; vacio = las 80 de COCO
         "topico_color": "/aima/hal/sensor/rgbd_head_front/rgb_image/compressed",
         "topico_profundidad": "/aima/hal/sensor/rgbd_head_front/depth_image",
         "escala_profundidad": 0.001,   # 16UC1 en milimetros -> metros (sin verificar en el X2)
@@ -159,5 +161,7 @@ def _validar(cfg):
     _numero(cfg, "vision", "hz", 0.5, 60.0)
     _numero(cfg, "vision", "confianza", 0.05, 0.99)
     _numero(cfg, "vision", "escala_profundidad", 0.0, 10.0, True)
+    if not isinstance(cfg["vision"]["clases"], list) or not all(isinstance(c, str) for c in cfg["vision"]["clases"]):
+        raise ErrorConfiguracion("vision.clases debe ser una lista de nombres, por ejemplo [taza, pieza_roja]")
     if cfg["vision"]["ojo"] not in ("ninguno", "camara", "simulado", "x2", "remoto"):
         raise ErrorConfiguracion("vision.ojo debe ser ninguno, camara, simulado, x2 o remoto")

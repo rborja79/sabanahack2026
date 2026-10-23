@@ -8,6 +8,7 @@ El orden de las articulaciones de cada brazo es el de la cadena desde el hombro 
 mano. En el X2 coincide con el orden del mensaje (hombro pitch, roll, yaw, codo, muneca...).
 La prueba de integracion lo comprueba contra el MJCF real.
 """
+import functools
 import re
 
 import numpy as np
@@ -23,13 +24,25 @@ PATRON_BRAZO = re.compile(r"shoulder|elbow|wrist|arm", re.I)
 PATRON_CABEZA = re.compile(r"head|neck", re.I)
 
 
+def pathlib_resolver(ruta):
+    import pathlib
+    return pathlib.Path(ruta).resolve()
+
+
+@functools.lru_cache(maxsize=4)
+def _cargar(ruta):
+    """El MjModel (mallas incluidas) se carga una vez por archivo y se comparte: es de solo lectura.
+    Cada Modelo tiene su propio MjData, asi la IK de la teleoperacion no pisa la pose del simulador."""
+    return mujoco.MjModel.from_xml_path(ruta)
+
+
 class Modelo:
     def __init__(self, ruta_xml, efectores=None, patron_brazo=PATRON_BRAZO, patron_cabeza=PATRON_CABEZA):
         """efectores: {'izquierda': 'nombre_del_body', 'derecha': ...}. Si falta, se buscan por nombre."""
         if mujoco is None:
             raise ErrorRobot("falta mujoco", pista="pip install mujoco")
         try:
-            self.m = mujoco.MjModel.from_xml_path(str(ruta_xml))
+            self.m = _cargar(str(pathlib_resolver(ruta_xml)))
         except Exception as e:
             raise ErrorRobot(f"no se pudo cargar el modelo {ruta_xml}: {e}",
                              pista="revisa la ruta del MJCF y que mujoco este instalado")

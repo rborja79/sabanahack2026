@@ -38,6 +38,46 @@ En el Mac, lo más fácil: doble clic en **`Probar en Mac.command`** (en la raí
 > El Mac no puede correr ROS 2 con el robot de forma directa. Por eso existe el modo 2: el código que toca ROS vive junto
 > al robot y el Mac solo manda órdenes de alto nivel (y calcula la cinemática y el visor).
 
+## Elegir el robot: `--robot`
+
+El robot se elige al lanzar, no dentro de la plantilla: `--robot falso | sim | x2 | d1 | remoto`.
+La plantilla declara lo que necesita (`requiere: [caminar, manos, medios...]`) y el andamio se niega a correrla en un
+robot que no lo tiene, con un mensaje claro. Las **manos** no son un robot aparte: son parte del X2 (pinza o mano diestra),
+y se usan con los pasos `mano` y `brazos` (plantilla `manos.yaml`).
+
+| Robot | Qué es | Sabe hacer |
+|---|---|---|
+| `falso` | robot de mentira en memoria, para probar lógica y fallos | todo (lo anota) |
+| `sim` | X2 en MuJoCo con su modelo real; `--ver3d` abre una ventana 3D | caminar (deslizando), brazos, cabeza |
+| `x2` | X2 real por ROS 2 (Ubuntu + AimDK, cable a 10.0.1.41) | caminar, brazos, cabeza, manos, gestos, voz, medios |
+| `d1` | cuadrúpedo D1 (SDK zsl-1, solo Linux) | caminar, gestos |
+| `remoto` | cualquiera de los anteriores corriendo en otra máquina con `servidor_robot` | lo que tenga el de allá |
+
+### Simulador 3D
+
+Con el modelo del X2 en `robots/X2_URDF/` (el repo oficial `AgibotTech/agibot_x2_urdf`, carpeta `X2_URDF-v1.4.0`):
+
+```
+.venv/bin/mjpython -m andamio buscar_persona --robot sim --ojo simulado --ver3d --panel --confirmo   # Mac
+python -m andamio buscar_persona --robot sim --ojo simulado --ver3d --panel --confirmo              # Linux/Windows
+```
+
+En el Mac la ventana 3D exige `mjpython` (viene con mujoco). La simulación es cinemática: el robot se desliza al caminar
+(no simula pasos ni equilibrio, eso lo hace el robot real) y mueve brazos y cabeza con los límites del modelo. Sirve para
+ver que la plantilla hace lo que crees, no para validar estabilidad.
+
+## Pantalla, sonido y luces (X2)
+
+Pasos: `expresion` (`feliz`, `parpadear`, `dormido`, `aburrido`, `muy_enojado`, `adorar`, `anormal` o un id del manual),
+`luces` (`modo: fijo|respirar|parpadear|fluir`, `color: azul` o `[r, g, b]`), `video` (`archivo: intro.mp4`,
+`repetir: true`), `audio` (`archivo: saludo.wav`) y `decir` (voz sintetizada). Plantilla de ejemplo: `medios.yaml`.
+
+Los videos y audios viven en el **computador de interacción del robot (PC3, 10.0.1.42)**, no en el de desarrollo:
+súbelos con `./andamio/instalar/subir_medios.sh USUARIO intro.mp4 saludo.wav` (quedan en `/var/tmp/andamio_medios/`,
+legibles por todos, como pide el manual). Audio solo **WAV/PCM** (convierte mp3 con `ffmpeg -i x.mp3 -ar 16000 -ac 1 x.wav`).
+El manual pide detener `task_manager` en el PC1 para que no compita por la pantalla y las luces: eso lo hacen los
+organizadores (`aima em stop-app task_manager`); nosotros nunca ejecutamos nada en el PC1.
+
 ## Autonomía (nivel 1: mirar → decidir → actuar)
 
 Pasos nuevos para plantillas: `mirar` (guarda lo que ve en una variable), `buscar` (gira hasta ver el objeto y lo centra)
@@ -60,6 +100,32 @@ Seguridad propia: la velocidad caduca sola en 0,35 s si el ciclo se cuelga, fren
 tiene tiempo máximo, no avanza si el objeto no está al frente o si no sabe la distancia, y nunca se acerca a menos de
 0,5 m. Con la webcam la distancia se estima por el tamaño típico del objeto: es aproximada. Sin verificar con el robot:
 el campo de visión de la cámara del X2 (`vision.fov_h`) y el formato de su profundidad (se asume 16UC1 en mm).
+
+### Entrenar YOLO con tus propios objetos
+
+Para personas, botellas, vasos, sillas o mochilas **no hace falta entrenar**: el modelo del repo ya reconoce las 80 clases de
+COCO. Entrena solo si el reto trae objetos raros (una pieza, un logo, un juguete):
+
+1. **Fotos:** 100 a 300 por objeto, con distintos fondos, luces y distancias (la propia cámara del robot o la del portátil:
+   `python vision/objetos.py --fuente 0` sirve para ver qué ya detecta).
+2. **Etiquetar:** cajas alrededor de cada objeto en Roboflow, CVAT o Label Studio; exporta en formato **YOLO** (deja un
+   `data.yaml` con las clases en orden).
+3. **Entrenar** (en el Mac usa la GPU con `device=mps`; 20-40 min con yolo11n):
+   ```
+   pip install ultralytics
+   yolo detect train model=yolo11n.pt data=mis_datos/data.yaml epochs=60 imgsz=640 device=mps
+   yolo export model=runs/detect/train/weights/best.pt format=onnx opset=12 imgsz=640
+   cp runs/detect/train/weights/best.onnx vision/modelos/mio.onnx
+   ```
+4. **Usarlo** en `andamio/config.yaml`:
+   ```yaml
+   vision:
+     modelo: vision/modelos/mio.onnx
+     clases: [pieza_roja, taza_logo]     # mismo orden que el data.yaml
+   ```
+   y en la plantilla `buscar: {objeto: pieza_roja}`. Si el número de clases no cuadra, el andamio lo dice al arrancar.
+   Para objetos nuevos la distancia se estima por tamaño solo si los agregas a `TAMANOS` en `vision.py`; con el X2 se
+   usa la profundidad de la cámara.
 
 ## Llevar lo que probaste al robot (cable, WiFi o PC del equipo)
 
@@ -129,7 +195,8 @@ pasos:
 ```
 
 Pasos: `preparar` `modo` `caminar` `girar` `parar` `esperar` `decir` `gesto` `brazos` `cabeza` `mano` `escuchar` `entender`
-`ejecutar_accion` `voz_bucle` `teleop` `repetir` `si` `grabar` `registrar` `confirmar`.
+`ejecutar_accion` `voz_bucle` `teleop` `repetir` `si` `grabar` `registrar` `confirmar` `mirar` `buscar` `acercarse`
+`expresion` `luces` `video` `audio`.
 `python -m andamio MISION --validar` revisa claves, pasos y condiciones sin tocar el robot; `--seco` muestra lo que haría.
 Condiciones de `si`: una sola comparación; los textos van entre comillas (`estado.modo == 'caminar'`), un nombre suelto sin
 definir es error. La configuración es estricta: una clave `ANDAMIO_SECCION__CLAVE` desconocida o un valor no numérico (NaN) se rechaza al arrancar.

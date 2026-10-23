@@ -276,6 +276,48 @@ class TransporteROS:
         r = self._llamar(self.cl["tts"], req, lambda q, t: setattr(q.header.header, "stamp", t))
         return bool(r.tts_resp.is_success)
 
+    # ---------- medios (servicios del computador de interaccion, PC3) ----------
+    def _cliente(self, nombre, tipo, srv):
+        if nombre not in self.cl:
+            self.cl[nombre] = self.node.create_client(tipo, "/aimdk_5Fmsgs/srv/" + srv)
+        return self.cl[nombre]
+
+    def reproducir_video(self, ruta, modo, prioridad=5):
+        req = self.S.PlayVideo.Request()
+        req.video_path, req.mode, req.priority = str(ruta), int(modo), int(prioridad)
+        r = self._llamar(self._cliente("video", self.S.PlayVideo, "PlayVideo"), req,
+                         lambda q, t: setattr(q.header.header, "stamp", t))
+        return bool(r.success), str(getattr(r, "message", ""))
+
+    def reproducir_audio(self, ruta, prioridad=8):
+        import os
+        req = self.S.PlayAudioFile.Request()
+        req.file.pkg_name = "andamio"
+        req.file.file_name = os.path.basename(ruta)
+        req.file.file_path = os.path.dirname(ruta) + "/"
+        req.file.priority = int(prioridad)
+        req.file.priority_weight = 0
+        r = self._llamar(self._cliente("audio", self.S.PlayAudioFile, "PlayAudioFile"), req,
+                         lambda q, t: setattr(q.request.header, "stamp", t), intentos=5, espera=1.0)
+        exito = getattr(self.M, "CommonState", None)
+        valor = r.reponse.status.value            # (sic) asi se llama el campo en el SDK
+        return (valor == exito.SUCCESS) if exito is not None else valor == 1, str(r.reponse.message)
+
+    def expresion(self, emocion_id, modo, prioridad=10):
+        req = self.S.PlayEmoji.Request()
+        req.emotion_id, req.mode, req.priority = int(emocion_id), int(modo), int(prioridad)
+        r = self._llamar(self._cliente("emoji", self.S.PlayEmoji, "PlayEmoji"), req,
+                         lambda q, t: setattr(q.header.header, "stamp", t))
+        return bool(r.success), str(getattr(r, "message", ""))
+
+    def luces(self, modo, r_, g, b, prioridad=6):
+        req = self.S.SetPmuLed.Request()
+        req.led_strip_mode, req.r, req.g, req.b = int(modo), int(r_), int(g), int(b)
+        req.priority, req.reset_priority, req.trace_id = int(prioridad), False, "andamio"
+        r = self._llamar(self._cliente("led", self.S.SetPmuLed, "SetPmuLed"), req,
+                         lambda q, t: setattr(q.request.header, "stamp", t))
+        return r.status_code == 0, f"0x{r.status_code:X}"
+
     def bateria(self):
         if self._bateria is None or time.monotonic() - self._t_bateria > 15:
             return None
@@ -382,7 +424,7 @@ class _TrenSuperior(threading.Thread):
 
 class RobotX2(Robot):
     nombre = "x2"
-    capacidades = frozenset({"caminar", "brazos", "cabeza", "manos", "hablar", "gestos"})
+    capacidades = frozenset({"caminar", "brazos", "cabeza", "manos", "hablar", "gestos", "medios"})
     vel_min = (0.2, 0.2, 0.1)
     vel_max = (1.0, 1.0, 1.0)
 
@@ -603,3 +645,30 @@ class RobotX2(Robot):
     def hablar(self, texto):
         if not self.t.hablar(texto):
             raise ErrorRobot("el robot no pudo reproducir el texto")
+
+    # ---------- medios: los archivos deben estar en el computador de interaccion (PC3, 10.0.1.42) ----------
+    def _medio(self, ok_msg, que, pista):
+        ok, msg = ok_msg
+        if not ok:
+            raise ErrorRobot(f"el robot no pudo {que}: {msg}", pista=pista)
+
+    def video(self, ruta, repetir=False):
+        self._medio(self.t.reproducir_video(ruta, 2 if repetir else 1), f"reproducir el video {ruta}",
+                    "el archivo debe estar en el PC3 (10.0.1.42), legible por todos (sube con "
+                    "andamio/instalar/subir_medios.sh); si la pantalla no cambia, los organizadores deben "
+                    "detener task_manager")
+
+    def audio(self, ruta):
+        if not str(ruta).lower().endswith((".wav", ".pcm")):
+            raise ErrorRobot("el robot solo reproduce WAV (PCM) o PCM crudo", pista="convierte el mp3 a wav")
+        self._medio(self.t.reproducir_audio(ruta), f"reproducir el audio {ruta}",
+                    "el archivo debe estar en el PC3 (10.0.1.42) y legible por todos; sube con subir_medios.sh")
+
+    def expresion(self, emocion, repetir=False):
+        self._medio(self.t.expresion(emocion, 2 if repetir else 1), f"mostrar la expresion {emocion}",
+                    "ids del manual: 1 parpadear, 60 aburrido, 70 anormal, 80 dormido, 90 feliz, 190 muy enojado, 200 adorar")
+
+    def luces(self, modo, color):
+        r_, g, b = color
+        self._medio(self.t.luces(modo, r_, g, b), "cambiar las luces",
+                    "0x1024 = prioridad insuficiente: task_manager esta usando las luces")

@@ -67,7 +67,7 @@ TAMANOS = {
 class Detector:
     """YOLO11n con OpenCV (cv2.dnn). No necesita torch ni internet: el modelo viene en el repo."""
 
-    def __init__(self, ruta=None, confianza=0.45, solapamiento=0.45, lado=640):
+    def __init__(self, ruta=None, confianza=0.45, solapamiento=0.45, lado=640, clases=None):
         if cv2 is None or np is None:
             raise ErrorRobot("falta OpenCV para la vision", pista="pip install opencv-python numpy")
         ruta = pathlib.Path(ruta or MODELO_YOLO)
@@ -79,6 +79,7 @@ class Detector:
         except Exception as e:
             raise ErrorRobot(f"OpenCV no pudo cargar el modelo: {e}", pista="actualiza opencv-python (>= 4.9)")
         self.confianza = float(confianza)
+        self.clases = list(clases) if clases else COCO
         self.solapamiento = float(solapamiento)
         self.lado = int(lado)
 
@@ -92,8 +93,11 @@ class Detector:
         lienzo[dy:dy + nh, dx:dx + nw] = cv2.resize(bgr, (nw, nh))
         blob = cv2.dnn.blobFromImage(lienzo, 1 / 255.0, (self.lado, self.lado), swapRB=True, crop=False)
         self.red.setInput(blob)
-        salida = self.red.forward()[0].T          # (8400, 84): 4 de caja + 80 clases
+        salida = self.red.forward()[0].T          # (8400, 4 + N): 4 de caja + N clases
         puntajes = salida[:, 4:]
+        if puntajes.shape[1] != len(self.clases):
+            raise ErrorRobot(f"el modelo tiene {puntajes.shape[1]} clases y vision.clases tiene {len(self.clases)}",
+                             pista="pon en vision.clases los nombres de tu modelo, en el mismo orden del data.yaml")
         mejor = puntajes.argmax(axis=1)
         valor = puntajes[np.arange(len(mejor)), mejor]
         sirve = valor >= self.confianza
@@ -110,8 +114,16 @@ class Detector:
             k = int(mejor[i])
             x0, y0 = max(0.0, float(x[i])), max(0.0, float(y[i]))
             x1, y1 = min(float(ancho), float(x[i] + w[i])), min(float(alto), float(y[i] + h[i]))
-            out.append((COCO[k] if k < len(COCO) else str(k), float(valor[i]), x0, y0, x1 - x0, y1 - y0))
+            out.append((self.clases[k], float(valor[i]), x0, y0, x1 - x0, y1 - y0))
         return out
+
+
+def _ruta_modelo(ruta):
+    """Rutas relativas se resuelven desde la raiz del repo (vision/modelos/mio.onnx)."""
+    if not ruta:
+        return None
+    p = pathlib.Path(ruta)
+    return p if p.is_absolute() or p.exists() else RAIZ_REPO / p
 
 
 def _a_deteccion(clase, score, x, y, w, h, ancho, alto, fov_h, profundidad=None, escala_prof=0.001):
@@ -210,7 +222,8 @@ class OjoImagenes(Ojo):
         self.fov_h = float(self.cfg.get("fov_h", 70.0))
         self.hz = float(self.cfg.get("hz", 8))
         self.escala_prof = float(self.cfg.get("escala_profundidad", 0.001))
-        self.detector = detector or Detector(self.cfg.get("modelo") or None, self.cfg.get("confianza", 0.45))
+        self.detector = detector or Detector(_ruta_modelo(self.cfg.get("modelo")), self.cfg.get("confianza", 0.45),
+                                             clases=self.cfg.get("clases") or None)
         self._cuadro = None
         self._prof = None
         self._nuevo = threading.Event()

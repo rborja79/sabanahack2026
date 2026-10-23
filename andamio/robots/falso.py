@@ -16,7 +16,7 @@ from ..nucleo.robot import Robot
 
 class RobotFalso(Robot):
     nombre = "falso"
-    capacidades = frozenset({"caminar", "brazos", "cabeza", "manos", "hablar", "gestos"})
+    capacidades = frozenset({"caminar", "brazos", "cabeza", "manos", "hablar", "gestos", "medios"})
     vel_min = (0.1, 0.1, 0.1)
     vel_max = (1.0, 1.0, 1.0)
 
@@ -173,3 +173,28 @@ class RobotFalso(Robot):
         self._falla("hablar")
         self._anotar("hablar", texto)
         self.dicho.append(texto)
+
+    # medios: solo se anotan (y se ven en las alertas)
+    def video(self, ruta, repetir=False):
+        self._falla("video")
+        self._anotar("video", ruta, repetir)
+        if self.alertas:
+            self.alertas.info(f"[{self.nombre}] pantalla: video {ruta}" + (" (en bucle)" if repetir else ""))
+
+    def audio(self, ruta):
+        self._falla("audio")
+        self._anotar("audio", ruta)
+        if self.alertas:
+            self.alertas.info(f"[{self.nombre}] parlante: audio {ruta}")
+
+    def expresion(self, emocion, repetir=False):
+        self._falla("expresion")
+        self._anotar("expresion", emocion, repetir)
+        if self.alertas:
+            self.alertas.info(f"[{self.nombre}] cara: expresion {emocion}")
+
+    def luces(self, modo, color):
+        self._falla("luces")
+        self._anotar("luces", modo, tuple(color))
+        if self.alertas:
+            self.alertas.info(f"[{self.nombre}] luces: {modo} {tuple(color)}")

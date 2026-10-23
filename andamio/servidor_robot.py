@@ -32,7 +32,8 @@ import time
 from .nucleo.errores import ErrorAndamio, ErrorConexion
 
 PERMITIDOS = {"estado", "modos", "cambiar_modo", "preparar", "enviar_velocidad", "detener", "emergencia",
-              "gestos", "gesto", "brazos", "cabeza", "mano", "hablar", "ver", "foto"}
+              "gestos", "gesto", "brazos", "cabeza", "mano", "hablar", "ver", "foto",
+              "video", "audio", "expresion", "luces"}
 SIN_RESPUESTA = {"enviar_velocidad", "brazos", "cabeza"}
 
 

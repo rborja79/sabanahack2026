@@ -20,7 +20,7 @@ MODOS = ("pasivo", "amortiguado", "fijo", "estable", "caminar", "cabeza", "tren_
 
 class Robot:
     nombre = "base"
-    capacidades = frozenset()           # caminar, brazos, cabeza, manos, hablar, gestos
+    capacidades = frozenset()           # caminar, brazos, cabeza, manos, hablar, gestos, medios
     vel_min = (0.0, 0.0, 0.0)           # abajo de esto el robot ignora o rechaza la orden
     vel_max = (1.0, 1.0, 1.0)
     grafo = GRAFO                       # transiciones de modo permitidas
@@ -102,6 +102,19 @@ class Robot:
     # ---------- interaccion ----------
     def hablar(self, texto):
         raise NoSoportado(f"{self.nombre} no habla")
+
+    # ---------- medios (pantalla, parlante, luces) ----------
+    def video(self, ruta, repetir=False):
+        raise NoSoportado(f"{self.nombre} no reproduce video")
+
+    def audio(self, ruta):
+        raise NoSoportado(f"{self.nombre} no reproduce audio")
+
+    def expresion(self, emocion, repetir=False):
+        raise NoSoportado(f"{self.nombre} no muestra expresiones")
+
+    def luces(self, modo, color):
+        raise NoSoportado(f"{self.nombre} no controla luces")
 
     # ---------- utilidades ----------
     def tiene(self, capacidad):
