@@ -347,13 +347,11 @@ class Seguridad:
     def _leer_terminal(self):
         """Lee una linea de la terminal sin bloquear ni dejar hilos colgados. True si confirman."""
         try:
-            import select
-            listo, _, _ = select.select([sys.stdin], [], [], 0.1)
-            if listo:
-                return sys.stdin.readline().strip().lower() in ("s", "si", "y", "yes")
+            from .consola import leer_linea
+            linea = leer_linea(0.1)
+            return linea is not None and linea.strip().lower() in ("s", "si", "y", "yes")
         except Exception:
             return False
-        return False
 
     def confirmar(self, texto, timeout=180):
         if self.auto_confirmar:

@@ -164,7 +164,8 @@ el servidor frena el robot solo.
 | Equipo | Comando |
 |---|---|
 | Mac / Linux sin ROS | `./andamio/instalar/mac_linux.sh` |
-| Windows (compañeros) | PowerShell **como administrador**: `powershell -ExecutionPolicy Bypass -File .\andamio\instalar\windows.ps1` (instala WSL2 + Ubuntu 22.04 y clona el repo público; hay que haber hecho `git push` antes) |
+| Windows, para probar (sin WSL) | `powershell -ExecutionPolicy Bypass -File .\andamio\instalar\windows_nativo.ps1`, luego doble clic en `Probar en Windows.bat`: simulador 3D, panel, voz, cámara, modo remoto |
+| Windows, para el X2 por cable (ROS 2) | PowerShell **como administrador**: `powershell -ExecutionPolicy Bypass -File .\andamio\instalar\windows.ps1` (instala WSL2 + Ubuntu 22.04 y clona el repo público; hay que haber hecho `git push` antes) |
 | Ubuntu 22.04 / WSL2 | `./andamio/instalar/ubuntu.sh --ros` y luego `--sdk ~/aimdk` |
 
 Copia `andamio/.env.ejemplo` a `.env` (en la raíz) y pon `ANTHROPIC_API_KEY` y `ANDAMIO_TOKEN`. `.env` está en `.gitignore`.

@@ -201,14 +201,9 @@ class OidoTexto:
     """Lee lineas de la terminal."""
 
     def escuchar(self, timeout=30):
-        if sys.stdin is None or not sys.stdin.isatty():
-            time.sleep(min(timeout, 0.2))
-            return None
-        import select
-        listo, _, _ = select.select([sys.stdin], [], [], timeout)
-        if listo:
-            return sys.stdin.readline().strip() or None
-        return None
+        from .consola import leer_linea
+        linea = leer_linea(timeout)
+        return (linea or "").strip() or None
 
 
 class OidoWhisper:

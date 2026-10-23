@@ -1,5 +1,6 @@
 """Alertas: lo que el operador debe ver, en consola, en el panel y en un archivo."""
 import json
+import os
 import sys
 import threading
 import time
@@ -7,6 +8,8 @@ from collections import deque
 
 NIVELES = {"info": 10, "aviso": 20, "error": 30, "critico": 40}
 _COLOR = {"info": "\033[36m", "aviso": "\033[33m", "error": "\033[31m", "critico": "\033[1;37;41m"}
+if os.name == "nt":          # la consola de Windows solo entiende los colores ANSI tras esta llamada
+    os.system("")
 
 
 class Alertas:
