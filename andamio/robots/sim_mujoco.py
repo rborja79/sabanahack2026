@@ -80,7 +80,65 @@ class RobotSim(RobotFalso):
         self.apertura = {"izquierda": 1.0, "derecha": 1.0}
         self.marcadores = []              # [{"clase", "x", "y"}] que se dibujan en el visor 3D (ojo simulado)
         self._visor = None
+        self._preparar_marcha()
         self._sincronizar_base()
+
+    # ---------- animacion de la marcha (solo visual) ----------
+    def _preparar_marcha(self):
+        """Busca las articulaciones de las piernas. El X2 real camina con su propio controlador;
+        aqui solo se anima un paso para que se vea caminar (los pies pueden deslizar)."""
+        import mujoco
+        m = self.modelo.m
+
+        def adr(nombre):
+            j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, nombre)
+            return int(m.jnt_qposadr[j]) if j >= 0 else None
+
+        self._piernas = {}
+        for lado in ("left", "right"):
+            q = {k: adr(f"{lado}_{k}_joint") for k in ("hip_pitch", "knee", "ankle_pitch")}
+            if all(v is not None for v in q.values()):
+                self._piernas[lado] = q
+        self._pies = [i for i in (mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, f"{l}_ankle_roll_link")
+                                  for l in ("left", "right")) if i >= 0]
+        self._hombros = {}
+        for lado, nombre in (("left", "left_shoulder_pitch_joint"), ("right", "right_shoulder_pitch_joint")):
+            a = adr(nombre)
+            if a is not None:
+                self._hombros[lado] = a
+        self._fase, self._amp = 0.0, 0.0
+        self._z_base = float(self.modelo.d.qpos[self.modelo.base + 2]) if self.modelo.base is not None else None
+        mujoco.mj_kinematics(m, self.modelo.d)
+        self._z_pie = min(float(self.modelo.d.xpos[i][2]) for i in self._pies) if self._pies else None
+
+    def _animar_marcha(self, dt):
+        if len(self._piernas) != 2 or self.modelo.base is None:
+            return
+        import mujoco
+        vx, vy, wz = self._vel
+        rapidez = math.hypot(vx, vy)
+        anda = self._modo == "caminar" and (rapidez > 0.02 or abs(wz) > 0.05)
+        self._amp += ((1.0 if anda else 0.0) - self._amp) * min(1.0, dt * 5)
+        if self._amp < 0.01 and not anda:
+            self._amp = 0.0
+        frec = 1.3 + 1.2 * min(1.0, rapidez / 0.6)                  # pasos por segundo (ciclo completo)
+        self._fase = (self._fase + 2 * math.pi * frec * dt * (self._amp > 0)) % (2 * math.pi)
+        zancada = 0.45 * min(1.0, rapidez / 0.4) * (1 if vx >= -0.02 else -1)
+        q = self.modelo.d.qpos
+        for lado, desfase in (("left", 0.0), ("right", math.pi)):
+            sen, cos = math.sin(self._fase + desfase), math.cos(self._fase + desfase)
+            cadera = (-0.12 - zancada * sen) * self._amp
+            rodilla = (0.25 + 0.55 * max(0.0, cos)) * self._amp
+            j = self._piernas[lado]
+            q[j["hip_pitch"]], q[j["knee"]] = cadera, rodilla
+            q[j["ankle_pitch"]] = max(-0.8, min(0.45, -(cadera + rodilla)))
+            if self.brazos_actuales is None and lado in self._hombros:   # brazos libres: se balancean
+                q[self._hombros[lado]] = 0.6 * zancada * sen * self._amp
+        mujoco.mj_kinematics(self.modelo.m, self.modelo.d)
+        if self._pies and self._z_pie is not None:                 # el pie mas bajo sigue tocando el piso
+            bajo = min(float(self.modelo.d.xpos[i][2]) for i in self._pies)
+            q[self.modelo.base + 2] += self._z_pie - bajo
+            mujoco.mj_kinematics(self.modelo.m, self.modelo.d)
 
     # ---------- visor 3D (ventana de MuJoCo) ----------
     def abrir_visor_3d(self):
@@ -117,12 +175,15 @@ class RobotSim(RobotFalso):
 
     def _bucle_visor(self):
         import mujoco
+        t_ant = time.monotonic()
         while self.visor_abierto():
             t0 = time.monotonic()
+            dt, t_ant = min(0.1, t0 - t_ant), t0
             try:
                 self._avanzar()
                 with self._mlock:
                     self._sincronizar_base()
+                    self._animar_marcha(dt)
                     x, y = self.pose[0], self.pose[1]
                     marcas = list(self.marcadores)
                 with self._visor.lock():
