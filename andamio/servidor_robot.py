@@ -248,9 +248,22 @@ class ServidorRobot:
             self._srv.server_close()
 
 
+def _leer_env():
+    """Carga un .env sencillo (raiz del repo o carpeta actual) sin pisar variables ya definidas."""
+    import pathlib
+    for p in (pathlib.Path(__file__).resolve().parents[1] / ".env", pathlib.Path.cwd() / ".env"):
+        if p.exists():
+            for linea in p.read_text(encoding="utf-8").splitlines():
+                linea = linea.strip()
+                if linea and not linea.startswith("#") and "=" in linea:
+                    k, _, v = linea.partition("=")
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
 def principal(argv=None):
     from .config import cargar
     from .nucleo.alertas import Alertas
+    _leer_env()
     ap = argparse.ArgumentParser(description="Servidor del robot para controlarlo desde otro computador")
     ap.add_argument("--robot", default="x2", choices=["x2", "d1", "falso", "sim"])
     ap.add_argument("--puerto", type=int)

@@ -53,7 +53,12 @@ class Entendedor:
         self.alertas = alertas
         self.cfg = cfg_voz or {}
         self._cliente = cliente
-        self._usar_claude = bool(cliente) or bool(os.environ.get("ANTHROPIC_API_KEY"))
+        clave = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        clave_valida = clave.startswith("sk-") and "pon-aqui" not in clave
+        self._usar_claude = bool(cliente) or clave_valida
+        if clave and not clave_valida and not cliente and alertas is not None:
+            alertas.info("voz: ANTHROPIC_API_KEY de ejemplo en .env; se entienden solo las palabras clave",
+                         pista="pon tu clave real (empieza por sk-ant-) en el .env para entender frases libres")
         self._fallos_claude = 0
         self._ultimo_aviso = 0.0
 
